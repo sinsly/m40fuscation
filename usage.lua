@@ -67,8 +67,6 @@ for _, token in ipairs(tokens) do
     -- use %q to quote the token and orig safely
     table.insert(out_lines, string.format("  [%q] = %q,", token, esc))
 end
-table.insert(out_lines, "}\n")
-table.insert(out_lines, "-- DONE --")
 
 -- join into one string for printing and copying
 local final_text = table.concat(out_lines, "\n")
