@@ -8,8 +8,7 @@
 
 --]]
 
--- obfconvert.lua
--- Builds an obfuscated string + reverse mapping (as before),
+-- build an obfuscated string + reverse mapping 
 -- prints them, and copies the same text to the clipboard using setclipboard(copiedtext).
 -- replace src's [[ ]] with your script you want to convert
 
