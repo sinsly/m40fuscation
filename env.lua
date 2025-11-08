@@ -1,8 +1,21 @@
+--[[ 
+    Author: sinsly
+    License: MIT
+    Github: https://github.com/sinsly
+    This script is callable as a chunk or via loadstring:
+      -- as chunk (existing behaviour):
+         -- make sure global `src` exists or the script will use it
+         -- set getgenv().obf_filter = 2 to enable mode 2 behavior
+      -- via loadstring:
+         local fn = loadstring(chunk)
+         local block, obf_string, rev_mapping = fn(my_src, 2)
+--]]
 
-local function has_valid_obf()
-    if type(obf_string) ~= "string" or #obf_string == 0 then return false end
-    if type(rev_mapping) ~= "table" then return false end
-    if (#obf_string % 3) ~= 0 then return false end
+-- helpers
+local function has_valid_obf(obf_string_param, rev_mapping_param)
+    if type(obf_string_param) ~= "string" or #obf_string_param == 0 then return false end
+    if type(rev_mapping_param) ~= "table" then return false end
+    if (#obf_string_param % 3) ~= 0 then return false end
     return true
 end
 
@@ -19,6 +32,7 @@ local function rand_hex(len)
     return table.concat(out)
 end
 
+-- core generator (returns obf, rev, m40v1_list, faux_funcs)
 local function generate_from_src(s, mode_num)
     if math and math.randomseed then
         local seed = (type(tick) == "function" and tick() or os.time and os.time() or 1)
@@ -142,6 +156,7 @@ local function generate_from_src(s, mode_num)
     return obf, rev, m40v1_list, faux_funcs
 end
 
+-- build pasteable block (returns final string)
 local function build_pasteable_block(obf, rev, mode_num, m40v1_list, faux_funcs)
     local tokens = {}
     for t in pairs(rev) do tokens[#tokens+1] = t end
@@ -205,6 +220,7 @@ local function build_pasteable_block(obf, rev, mode_num, m40v1_list, faux_funcs)
     return final
 end
 
+-- clipboard helper (non-fatal)
 local function try_setclipboard(text)
     local ok, err = pcall(function()
         if type(setclipboard) == "function" then
@@ -220,26 +236,56 @@ local function try_setclipboard(text)
     return ok, err
 end
 
-if not has_valid_obf() then
-    print("No valid obf_string/rev_mapping found: generating from src...")
-
-    local mode_num = getgenv().obf_filter or 1
+-- main: accepts optional (src_param, mode_param)
+local function main(src_param, mode_param)
+    local src_used = src_param or src -- use provided arg or global `src`
+    local mode_num = mode_param or (getgenv and getgenv().obf_filter) or 1
+    if type(mode_num) ~= "number" then mode_num = tonumber(mode_num) or 1 end
     if mode_num ~= 1 and mode_num ~= 2 then mode_num = 1 end
 
-    local obf, rev, m40v1_list, faux_funcs = generate_from_src(src, mode_num)
-    obf_string = obf
-    rev_mapping = rev
+    local obf_string_existing = _G.obf_string or obf_string -- check globals if present
+    local rev_mapping_existing = _G.rev_mapping or rev_mapping
 
-    local block = build_pasteable_block(obf, rev, mode_num, m40v1_list, faux_funcs)
-    print(("Generated obf_string + rev_mapping (mode %d):\n"):format(mode_num))
-    print(block)
+    if not has_valid_obf(obf_string_existing, rev_mapping_existing) then
+        -- require src to generate
+        if type(src_used) ~= "string" or #src_used == 0 then
+            error("No valid obf_string/rev_mapping and no `src` provided to generate from.")
+        end
 
-    local ok, err = try_setclipboard(block)
-    if ok then
-        print("The obf_string + rev_mapping block was copied to clipboard.")
+        print("No valid obf_string/rev_mapping found: generating from src...")
+
+        local obf, rev, m40v1_list, faux_funcs = generate_from_src(src_used, mode_num)
+
+        -- set globals for compatibility
+        obf_string = obf
+        rev_mapping = rev
+        _G.obf_string = obf_string
+        _G.rev_mapping = rev_mapping
+
+        local block = build_pasteable_block(obf, rev, mode_num, m40v1_list, faux_funcs)
+        print(("Generated obf_string + rev_mapping (mode %d):\n"):format(mode_num))
+        print(block)
+
+        local ok, err = try_setclipboard(block)
+        if ok then
+            print("The obf_string + rev_mapping block was copied to clipboard.")
+        else
+            print("Could not copy to clipboard: " .. tostring(err))
+        end
+
+        return block, obf, rev
     else
-        print("Could not copy to clipboard: " .. tostring(err))
+        print("Using existing obf_string + rev_mapping.")
+        -- If an existing mapping is valid, return the pasteable block for it
+        local block = build_pasteable_block(obf_string_existing, rev_mapping_existing, mode_num, {}, {})
+        return block, obf_string_existing, rev_mapping_existing
     end
-else
-    print("Using existing obf_string + rev_mapping.")
 end
+
+-- expose function to globals (optional convenience)
+_G.generate_obf_block = main
+
+-- If chunk is called with arguments (loadstring(...)(src, mode)),
+-- those args will be used; otherwise it behaves as original script.
+-- Return values are (block_string, obf_string, rev_mapping)
+return main(...)
