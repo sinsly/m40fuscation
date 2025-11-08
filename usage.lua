@@ -1,96 +1,144 @@
 --[[
 
     Author: sinsly
-
     License: MIT
-
     Github: https://github.com/sinsly
 
 --]]
 
 -- build an obfuscated string + reverse mapping 
--- prints them, and copies the same text to the clipboard using setclipboard(copiedtext).
+-- prints them, and copies the same text to the clipboard
+-- remove example obf_string and rev_mapping in the script to call from src
 -- replace src's [[ ]] with your script you want to convert
 
-local src = [[
-print('hi')
--- add your full script here
-]]
+obf_string = "~01~02~03~04~05~06~07~08~03~09~05~08~03~0A~09~05~0B~0A~05~09~0C~0D~02~0E~0B~0F~07~10"
 
--- build the set of unique characters used in src
-local seen = {}
-local chars = {}
-for i = 1, #src do
-    local c = src:sub(i,i)
-    if not seen[c] then
-        seen[c] = true
-        table.insert(chars, c)
+rev_mapping = {
+  ["~01"] = "p",
+  ["~02"] = "r",
+  ["~03"] = "i",
+  ["~04"] = "n",
+  ["~05"] = "t",
+  ["~06"] = "(",
+  ["~07"] = "'",
+  ["~08"] = "h",
+  ["~09"] = " ",
+  ["~0A"] = "s",
+  ["~0B"] = "e",
+  ["~0C"] = "w",
+  ["~0D"] = "o",
+  ["~0E"] = "k",
+  ["~0F"] = "d",
+  ["~10"] = ")",
+}
+
+
+local src = src or [[
+print('hi this test worked')]]
+
+-- detect whether obf_string and rev_mapping look valid
+local function has_valid_obf()
+    if type(obf_string) ~= "string" or #obf_string == 0 then return false end
+    if type(rev_mapping) ~= "table" then return false end
+    -- quick sanity: tokens are ~XX repeated, length should be multiple of 3
+    if (#obf_string % 3) ~= 0 then return false end
+    return true
+end
+
+-- build obf_string + rev_mapping from src
+local function generate_from_src(s)
+    local seen = {}
+    local chars = {}
+    for i = 1, #s do
+        local c = s:sub(i,i)
+        if not seen[c] then
+            seen[c] = true
+            table.insert(chars, c)
+        end
     end
+
+    local mapping = {}
+    local rev = {}
+    for i, ch in ipairs(chars) do
+        local token = string.format("~%02X", i) -- ~01, ~02, ...
+        mapping[ch] = token
+        rev[token] = ch
+    end
+
+    local obf_parts = {}
+    for i = 1, #s do
+        local c = s:sub(i,i)
+        obf_parts[#obf_parts+1] = mapping[c]
+    end
+    local obf = table.concat(obf_parts)
+
+    return obf, rev
 end
 
--- build tokens: fixed-length tokens "~XX" (tilde + two hex digits)
-local mapping = {}          -- original_char -> token
-local rev_mapping = {}      -- token -> original_char
-for i, ch in ipairs(chars) do
-    local token = string.format("~%02X", i) -- ~01, ~02, ~1A, etc
-    mapping[ch] = token
-    rev_mapping[token] = ch
+-- obf_string + rev_mapping
+local function build_pasteable_block(obf, rev)
+    local out_lines = {}
+    table.insert(out_lines, "--[[\n")
+    table.insert(out_lines, "    Author: sinsly\n")
+    table.insert(out_lines, "    License: MIT\n")
+    table.insert(out_lines, "    Github: https://github.com/sinsly\n")
+    table.insert(out_lines, "--]]\n")
+    table.insert(out_lines, 'obf_string = ' ..'"'.. obf .. '"\n')
+    table.insert(out_lines, "rev_mapping = {")
+
+    local tokens = {}
+    for token in pairs(rev) do table.insert(tokens, token) end
+    table.sort(tokens)
+    for _, token in ipairs(tokens) do
+        local orig = rev[token]
+        -- use %q to safely quote strings (handles newlines and backslashes)
+        table.insert(out_lines, string.format("  [%q] = %s,", token, string.format("%q", orig)))
+    end
+
+    table.insert(out_lines, "}\n") -- close table and add trailing newline
+    local final_text = table.concat(out_lines, "\n")
+    return final_text
 end
 
--- build obfuscated string: replace each char with token
-local obf_parts = {}
-for i = 1, #src do
-    local c = src:sub(i,i)
-    obf_parts[#obf_parts+1] = mapping[c]
-end
-local obf_string = table.concat(obf_parts)
-
--- prepare printable lines (so we can both preview and copy the same content)
-local out_lines = {}
-table.insert(out_lines, "--[[\n")
-table.insert(out_lines, "    Author: sinsly\n")
-table.insert(out_lines, "    License: MIT\n")
-table.insert(out_lines, "    Github: https://github.com/sinsly\n")
-table.insert(out_lines, "--]]\n")
-table.insert(out_lines, 'obf_string = [[' .. obf_string .. ']]\n')
-
-table.insert(out_lines, "rev_mapping = {")
--- use a deterministic order for nicer output: collect tokens and sort
-local tokens = {}
-for token in pairs(rev_mapping) do table.insert(tokens, token) end
-table.sort(tokens)
-for _, token in ipairs(tokens) do
-    local orig = rev_mapping[token]
-    -- escape backslashes and quotes so the pasted table is valid Lua
-    local esc = orig:gsub("\\", "\\\\"):gsub("\r", "\\r"):gsub("\n", "\\n")
-    -- use %q to quote the token and orig safely
-    table.insert(out_lines, string.format("  [%q] = %q,", token, esc))
+-- copy to clipboard where available
+local function try_setclipboard(text)
+    local ok, err = pcall(function()
+        if type(setclipboard) == "function" then
+            setclipboard(text)
+            return true
+        end
+        -- some exploit environments expose syn and syn.set_clipboard or similar
+        if type(syn) == "table" and type(syn.set_clipboard) == "function" then
+            syn.set_clipboard(text)
+            return true
+        end
+        error("setclipboard not available in this environment")
+    end)
+    return ok, err
 end
 
--- join into one string for printing and copying
-local final_text = table.concat(out_lines, "\n")
+-- if obf_string/rev_mapping are missing or invalid, generate them from src
+if not has_valid_obf() then
+    print("No valid obf_string/rev_mapping found: generating from src...")
+    local obf, rev = generate_from_src(src)
+    obf_string = obf
+    rev_mapping = rev
 
--- print to output (console)
-print(final_text)
+    local block = build_pasteable_block(obf, rev)
+    print("Generated obf_string + rev_mapping (pasteable block):\n")
+    print(block)
 
--- copy to clipboard
-local ok, err = pcall(function()
-    if type(setclipboard) == "function" then
-        setclipboard(final_text)
+    local ok, err = try_setclipboard(block)
+    if ok then
+        print("The obf_string + rev_mapping block was copied to clipboard.")
     else
-        error("Setclipboard not available in this environment")
+        print("Could not copy to clipboard: " .. tostring(err))
     end
-end)
-
-if ok then
-    print("The obf_string and rev_mapping has been copied to clipboard")
 else
-    print("Could not copy to clipboard: " .. tostring(err))
+    print("Using existing obf_string + rev_mapping.")
 end
 
-
--- decompile starts here if you are interested <3
--- reconstruct the original source from obf_string + rev_mapping
+-- decompiler: reconstruct original source
 local function decompile_to_string()
     if type(obf_string) ~= "string" then
         print("No obf_string present to decompile")
@@ -109,10 +157,11 @@ local function decompile_to_string()
         local token = obf_string:sub(i, i+2)
         local ch = rev_mapping[token]
         if ch == nil then
-            -- if we encounter an unknown token, insert a placeholder and continue
-            ch = "?"
+            -- unknown token: insert placeholder and include the token in brackets to help debugging
+            table.insert(parts, ("<UNKNOWN:%s>"):format(token))
+        else
+            parts[#parts+1] = ch
         end
-        parts[#parts+1] = ch
         i = i + 3
     end
 
@@ -120,7 +169,7 @@ local function decompile_to_string()
     return reconstructed
 end
 
--- run the reconstructed source instead of printing it.
+-- run the reconstructed chunk
 local function run_decompiled()
     local reconstructed = decompile_to_string()
     if not reconstructed then
@@ -128,21 +177,18 @@ local function run_decompiled()
         return nil
     end
 
-    -- choose loader: Lua 5.2+ has load; 5.1 uses loadstring
     local loader = load or loadstring
     if not loader then
         print("No load/loadstring available in this Lua environment")
         return nil
     end
 
-    -- try to compile the reconstructed code into a chunk
     local chunk, compile_err = loader(reconstructed, "decompiled_chunk")
     if not chunk then
         print("Compile error in decompiled code: " .. tostring(compile_err))
         return nil
     end
 
-    -- execute compiled chunk safely with pcall
     local ok, runtime_err = pcall(chunk)
     if ok then
         print("Decompiled code executed successfully")
@@ -153,5 +199,10 @@ local function run_decompiled()
     end
 end
 
--- automatically run the decompiled code when this script is executed for testing purposes
-run_decompiled()
+-- automatically run the decompiled chunk for testing
+local success = run_decompiled()
+if success then
+    print("Done.")
+else
+    print("Decompilation or execution failed; check tokens / mapping.")
+end
