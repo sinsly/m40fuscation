@@ -11,6 +11,7 @@
 -- prints them, and copies the same text to the clipboard
 -- obf_string / rev_mapping have be marked nil if you want to create a script
 -- replace src's [[ ]] with your script to create your string
+-- replace string and mapping to run your obfuscation or loadstring it
 
 _G.obf_string = nil
 _G.rev_mapping = nil
