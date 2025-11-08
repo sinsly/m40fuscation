@@ -1,29 +1,9 @@
-local _X,_Y,_Z,_A,_B,_C,_D,_E,_F,_G="","",{},{};_X=type;_Y=pcall
-_B=function(s)local m,n={},{};for i=1,#s do local c=string.sub(s,i,i) if not m[c]then m[c]=true;table.insert(n,c)end end;local t,u={},{};for i,v in ipairs(n)do local tok=string.format("~%02X",i);t[v]=tok;u[tok]=v end;local p={};for i=1,#s do p[#p+1]=t[string.sub(s,i,i)] end;return table.concat(p),u end
-_C=function(x) _Y(function() if _X(setclipboard)=="function" then setclipboard(x) elseif _X(syn)=="table" and _X(syn.set_clipboard)=="function" then syn.set_clipboard(x) end end) end
-_D=function() if _X(obf_string)~="string" or #obf_string==0 then return false end if _X(rev_mapping)~="table" then return false end if (#obf_string%3)~=0 then return false end return true end
-local junk=(function() local a=0 for i=1,3 do a=a+math.floor((math.random()*2)+0) end return a end)()
-if not _D() then local o,p=_B(src) obf_string=o rev_mapping=p _C(o) end
-_E=function()
- if _X(obf_string)~="string" or _X(rev_mapping)~="table" then return nil end
- local r={},i=1,#obf_string
- while i<=#obf_string do
-  local tok=string.sub(obf_string,i,i+2)
-  local ch=rev_mapping[tok]
-  if ch==nil then r[#r+1]=("<~UNKNOWN:%s~>"):format(tok) else r[#r+1]=ch end
-  i=i+3
- end
- return table.concat(r)
-end
-_F=function()
- local s=_E() if not s then return nil end
- local L=(load or loadstring) if not L then return nil end
- local CC,err=L(s,"_G.exec")
- if not CC then return nil end
- _Y(CC)
-end
-local mt={__call=function(self,...) return _F() end}
-setmetatable(_G or {},mt)
-local function A(z)local t={} for i=1,#z do t[i]=string.byte(z,i) end return t end
-local _no=A("m40fuscation")
-(function(x) if x and x[1] then return _F() else return (function()return _F()end)() end end)(_no)
+local a1,a2,a3,a4,a5,a6,a7,a8,a9,a0,b1,b2,b3,b4
+a1=type;a2=pcall;a3=string.sub;a4=string.format;a5=table.insert;a6=table.concat
+a7=function(x1)local x2={} local x3={} for x4=1,#x1 do local x5=a3(x1,x4,x4) if not x2[x5]then x2[x5]=true;a5(x3,x5)end end local x6={} local x7={} for x8,x9 in ipairs(x3)do local y0=a4("~%02X",x8) x6[x9]=y0 x7[y0]=x9 end local z1={} for x4=1,#x1 do z1[#z1+1]=x6[a3(x1,x4,x4)] end return a6(z1),x7 end
+a8=function(z) a2(function() if a1(setclipboard)=="function"then setclipboard(z) elseif a1(syn)=="table" and a1(syn.set_clipboard)=="function"then syn.set_clipboard(z)end end) end
+a9=function() if a1(obf_string)~="string"or #obf_string==0 then return false end if a1(rev_mapping)~="table"then return false end if (#obf_string%3)~=0 then return false end return true end
+if not a9()then local b0,b1=a7(src) obf_string=b0 rev_mapping=b1 a8(b0) end
+b2=function() if a1(obf_string)~="string"or a1(rev_mapping)~="table"then return nil end local c1={} local c2,c3=1,#obf_string while c2<=c3 do local c4=a3(obf_string,c2,c2+2) local c5=rev_mapping[c4]or a4("<%s>",c4) c1[#c1+1]=c5 c2=c2+3 end return a6(c1) end
+b3=function() local d1=b2() if not d1 then return nil end local d2=load or loadstring if not d2 then return nil end local d3,d4=d2(d1,"_") if not d3 then return nil end a2(d3) end
+b3()
