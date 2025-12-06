@@ -25,7 +25,12 @@
 * Free unlimited public access usage.
 * Creation through roblox still possible but not needed.
 
-## [0.1.25] - Content update | 12/6/25
+## [0.1.25] - Fluff update | 11/29/25
 
 * Level 3 added.
 * Junk spam added.
+
+  ## [0.1.3] - Security push | 12/6/25
+
+* Stronger security for web modes.
+
