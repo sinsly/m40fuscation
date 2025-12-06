@@ -30,7 +30,8 @@
 * Level 3 added.
 * Junk spam added.
 
-  ## [0.1.3] - Security push | 12/6/25
+## [0.1.3] - Security push | 12/6/25
 
-* Stronger security for web modes.
+* Increase layers and increased durablity.
+* 3 types of obfuscation styles in each mode.
 
