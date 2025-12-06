@@ -9,8 +9,18 @@
 * Validation of embedded payload before execution.
 * Security levels introduced 1 and 2
 
-## [0.1.5] - Content update | 12/6/25
+## [0.1.1] - Security and comps | 11/11/25
 
-* Website automation
+* Increased security of level 1 and 2.
+* Removed character limit for response.
+
+## [0.1.15] - Web release | 11/11/25
+
+* Migrated to web + lua creation support.
+
+## [0.1.2] - Content update | 12/6/25
+
+* Full website automation.
 * Updated obfuscation system.
 * Free unlimited public access usage.
+* Creation through roblox still possible but not needed.
