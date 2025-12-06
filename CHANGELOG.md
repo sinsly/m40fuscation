@@ -14,11 +14,11 @@
 * Increased security of level 1 and 2.
 * Removed character limit for response.
 
-## [0.1.15] - Web release | 11/11/25
+## [0.1.15] - Web release | 11/14/25
 
 * Migrated to web + lua creation support.
 
-## [0.1.2] - Content update | 12/6/25
+## [0.1.2] - Content update | 11/19/25
 
 * Full website automation.
 * Updated obfuscation system.
